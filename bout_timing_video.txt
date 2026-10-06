@@ -1,0 +1,60 @@
+# Bout start/end times read from the VIDEO (seconds on the video clock).
+# These are not aligned to the data clock; segment times in main.py are refined from the data.
+# One section per subject, one line per bout: name  start  end  [# note]
+# Use - for a time you don't know.
+
+[AB01_Itak]
+Weight: 72.4 kg
+Height: 179 cm
+Age: 24
+Squat     4    8     # squat start to end of last squat
+RD_slow   8    13
+RD_fast   13   17    # stopped at 17, then turned around
+RA_slow   18   23
+RA_fast   23   26
+LG_slow   26   32
+LG_fast   32   38
+SA        38   43
+SD        43   48    # trial finished at 48
+
+[AB02_Oscar]
+Weight: 73.5 kg
+Height: 176 cm
+Age: 24
+Squat     1    6
+RD_slow   6    9
+RD_fast   9    12
+RA_slow   13    17
+RA_fast   17    20
+LG_slow   20    25
+LG_fast   25    30
+SA        30    34
+SD        34    39
+
+[AB03_Rajiv]
+Weight: 62.8 kg
+Height: 175 cm
+Age: 24
+Squat     0    4
+RD_slow   4    9
+RD_fast   9    12
+RA_slow   13    18
+RA_fast   18    20
+LG_slow   20    25
+LG_fast   25    30
+SA        30    34
+SD        36    39
+
+[AB04_Changseob]
+Weight: 74.7 kg
+Height: 184 cm
+Age: 30
+Squat     1    7
+RD_slow   8    12
+RD_fast   12    16
+RA_slow   17    22
+RA_fast   22    24
+LG_slow   24    29
+LG_fast   29    34
+SA        34    41
+SD        42    47

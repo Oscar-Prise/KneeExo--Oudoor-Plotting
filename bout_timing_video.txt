@@ -58,3 +58,73 @@ LG_slow   24    29
 LG_fast   29    34
 SA        34    41
 SD        42    47
+
+[AB05_Rafay]
+Weight: 85.25 kg
+Height: 183 cm
+Age: 24
+Squat     1    4
+RD_slow   5    8
+RD_fast   8    10
+RA_slow   11    15
+RA_fast   15    17
+LG_slow   17    21
+LG_fast   21    25
+SA        25    30
+SD        30    34
+
+[AB06_Nate]
+Weight: 87.2 kg
+Height: 183 cm
+Age: 36
+Squat     1    6
+RD_slow   6    11
+RD_fast   11    14
+RA_slow   16    20
+RA_fast   20    23
+LG_slow   23    28
+LG_fast   28    33
+SA        33    38
+SD        39    44
+
+[AB07_Derrick]
+Weight: 65.7 kg
+Height: 170 cm
+Age: 20
+Squat     1    6
+RD_slow   6    11
+RD_fast   11    14
+RA_slow   15    19
+RA_fast   19    22
+LG_slow   22    27
+LG_fast   27    31
+SA        31    36
+SD        36    41
+
+[AB08_Paul]
+Weight:  74.2kg
+Height:  174cm
+Age: 26
+Squat     1    5
+RD_slow   5    10
+RD_fast   10    13
+RA_slow   15    19
+RA_fast   19    22
+LG_slow   22    27
+LG_fast   27    31
+SA        31    36
+SD        36    41
+
+[AB09_Chaneui]
+Weight:  75kg
+Height:  181cm
+Age: 25
+Squat     1    5
+RD_slow   5    9
+RD_fast   9    12
+RA_slow   13    16
+RA_fast   16    19
+LG_slow   19    24
+LG_fast   24    29
+SA        29    33
+SD        34    38

@@ -74,6 +74,86 @@ SUBJECTS = {
         ],
         "turnarounds": [(28.3, 29.3), (52.8, 55.2)],
     },
+    # Data runs ~3.2 s behind the video.
+    "AB05": {
+        "file": "AB05_Rafay.npz",
+        "segments": [
+            ("Squat", 3.8, 7.6),
+            ("RD slow", 7.6, 10.9),
+            ("RD fast", 10.9, 14.6),
+            ("RA slow", 14.6, 17.5),
+            ("RA fast", 17.5, 20.1),
+            ("LG slow", 20.1, 24.0),
+            ("LG fast", 24.0, 28.2),
+            ("SA", 28.2, 33.6),
+            ("SD", 33.6, 37.0),
+        ],
+        "turnarounds": [(13.1, 14.6), (31.9, 33.6)],
+    },
+    # Data runs ~6 s behind the video.
+    "AB06": {
+        "file": "AB06_Nate.npz",
+        "segments": [
+            ("Squat", 6.7, 12.0),
+            ("RD slow", 12.0, 16.8),
+            ("RD fast", 16.8, 21.5),
+            ("RA slow", 21.5, 25.3),
+            ("RA fast", 25.3, 28.1),
+            ("LG slow", 28.1, 33.8),
+            ("LG fast", 33.8, 39.0),
+            ("SA", 39.0, 45.0),
+            ("SD", 45.0, 50.0),
+        ],
+        "turnarounds": [(20.0, 21.5), (43.4, 45.0)],
+    },
+    # Data runs ~5 s behind the video.
+    "AB07": {
+        "file": "AB07_Derrick.npz",
+        "segments": [
+            ("Squat", 6.3, 10.3),
+            ("RD slow", 10.3, 15.6),
+            ("RD fast", 15.6, 20.3),
+            ("RA slow", 20.3, 24.7),
+            ("RA fast", 24.7, 27.4),
+            ("LG slow", 27.4, 32.2),
+            ("LG fast", 32.2, 37.0),
+            ("SA", 37.0, 42.9),
+            ("SD", 42.9, 46.9),
+        ],
+        "turnarounds": [(19.0, 20.3), (41.2, 42.9)],
+    },
+    # Data runs ~5.6 s behind the video.
+    "AB08": {
+        "file": "AB08_Paul.npz",
+        "segments": [
+            ("Squat", 6.8, 10.3),
+            ("RD slow", 10.3, 15.9),
+            ("RD fast", 15.9, 21.6),
+            ("RA slow", 21.6, 25.2),
+            ("RA fast", 25.2, 28.2),
+            ("LG slow", 28.2, 33.5),
+            ("LG fast", 33.5, 37.7),
+            ("SA", 37.7, 43.7),
+            ("SD", 43.7, 47.5),
+        ],
+        "turnarounds": [(19.4, 21.6), (41.8, 43.7)],
+    },
+    # Data runs ~5.2 s behind the video.
+    "AB09": {
+        "file": "AB09_Chaneui.npz",
+        "segments": [
+            ("Squat", 6.6, 9.8),
+            ("RD slow", 9.8, 13.6),
+            ("RD fast", 13.6, 18.2),
+            ("RA slow", 18.2, 21.4),
+            ("RA fast", 21.4, 24.0),
+            ("LG slow", 24.0, 29.8),
+            ("LG fast", 29.8, 34.1),
+            ("SA", 34.1, 39.7),
+            ("SD", 39.7, 43.3),
+        ],
+        "turnarounds": [(16.9, 18.2), (38.2, 39.7)],
+    },
 }
 
 TIMING_FILE = "bout_timing_video.txt"
@@ -148,7 +228,9 @@ def read_subject_info(path):
 
 def info_label(info):
     """e.g. "72.4 kg · 179 cm · 24 yr" """
-    parts = [info.get("weight"), info.get("height")]
+    # Normalize spacing so "74.2kg" and "74.2 kg" both read "74.2 kg".
+    parts = [" ".join(info[k].replace("kg", " kg").replace("cm", " cm").split())
+             for k in ("weight", "height") if k in info]
     if "age" in info:
         parts.append(f"{info['age']} yr")
     return "  ·  ".join(p for p in parts if p)
@@ -195,17 +277,40 @@ def strides_by_phase(t, signal, hs, start, end, turnarounds):
     return np.array(strides)
 
 
+def foot_lag(t, foot_gyro, shank_gyro, start, end, max_lag=0.6, dt=0.01):
+    """Delay (s) of the foot IMU relative to the exo's shank gyro, from cross-correlation.
+
+    The foot IMU is logged separately from the exo; in some recordings (AB05+) it lags
+    by ~0.23 s, which would put every heel strike a quarter-stride late.
+    """
+    tu = np.arange(start, end, dt)
+    f = np.interp(tu, t, foot_gyro)
+    s = np.interp(tu, t, shank_gyro)
+    f, s = (f - f.mean()) / f.std(), (s - s.mean()) / s.std()
+    lags = np.arange(-int(max_lag / dt), int(max_lag / dt) + 1)
+    cc = [np.mean(f[max(0, L):len(f) + min(0, L)] * s[max(0, -L):len(s) - max(0, L)])
+          for L in lags]
+    return lags[int(np.argmax(cc))] * dt
+
+
 def process_subject(cfg):
     """Raw data, heel strikes, per-bout mean stride curves, and bout speeds."""
     d = np.load(cfg["file"])
     t = d["time"]
     segments = {name: (start, end) for name, start, end in cfg["segments"]}
     trial = segments["RD slow"][0], segments["SD"][1]
-    hs = detect_heel_strikes(t, d["gyro_foot_r_z"], *trial)
+    # The foot IMU drops samples (NaN, up to ~0.1 s) in some recordings; fill them so
+    # swing peaks next to a gap are still found.
+    gyro = d["gyro_foot_r_z"].copy()
+    bad = np.isnan(gyro)
+    gyro[bad] = np.interp(t[bad], t[~bad], gyro[~bad])
+    # Shift foot IMU time back onto the exo clock before detecting heel strikes.
+    lag = foot_lag(t, gyro, d["gyro_shank_r_z"], *trial)
+    hs = detect_heel_strikes(t - lag, gyro, *trial)
     # Foot pivots while turning around look like small swings; don't count them.
     hs = np.array([h for h in hs if not any(ta <= h <= tb for ta, tb in cfg["turnarounds"])])
 
-    out = {"d": d, "t": t, "hs": hs, "trial": trial, "segments": cfg["segments"],
+    out = {"d": d, "t": t, "hs": hs, "lag": lag, "trial": trial, "segments": cfg["segments"],
            "stride_mean": {}, "n_strides": {}, "speed": {}}
     for name in WALKING_BOUTS:
         start, end = segments[name]
@@ -220,6 +325,7 @@ def process_subject(cfg):
 subject_info = read_subject_info(TIMING_FILE)
 results = {subj: process_subject(cfg) for subj, cfg in SUBJECTS.items()}
 
+print("Foot IMU lag behind exo (s): " + ", ".join(f"{s} {r['lag']:+.2f}" for s, r in results.items()))
 print("Bout speed (m/s) and strides per subject")
 print(f"{'':8s}" + "".join(f"{s:>14s}" for s in results) + f"{'mean +/- SD':>16s}")
 for name in WALKING_BOUTS:
